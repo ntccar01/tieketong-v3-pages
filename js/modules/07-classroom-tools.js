@@ -1,4 +1,4 @@
-﻿/* ===================== UI plumbing ===================== */
+/* ===================== UI plumbing ===================== */
 /* ===================== 🎰 抽座號／隨機點名 ===================== */
 var _rollMode='seat',_rollMax=30,_rollNoRepeat=true,_rollUsedSeat={},_rollUsedName={},_rollSpinning=false;
 function openRoll(){if(!guardFeature('roll'))return;renderRollHost();$('rollModal').classList.add('show');}
@@ -54,7 +54,7 @@ function importMaterialsFile(file){var rd=new FileReader();rd.onload=function(ev
   saveMaterials();renderMaterials();toast('已匯入教材 '+added+' 則'+(skipped?('，略過 '+skipped+' 則'):''));};rd.readAsText(file);}
 function openMaterials(){if(!guardFeature('materials'))return;renderMaterials();$('materialModal').classList.add('show');}
 function renderMaterials(){var b=$('matBody');if(!b)return;var inRoom=isHost&&roomCodeStr;
-  var h='<div class="ms-hint" style="margin-bottom:8px">'+(inRoom?'課前準備好的貼文，按「▶ 推出」即可發布到牆面（可重複推出）。':'先把貼文／題目準備好（存在本機，可重複使用）；進入教室後（房主）即可一鍵推出。')+'</div>';
+  var h='<div class="ms-hint" style="margin-bottom:8px">'+(inRoom?'課前準備好的貼文，按「▶ 推出」即可發布到牆面（可重複推出）。':'課前可先準備貼文／題目，也可匯出教材庫帶到另一台電腦；建立教室後（房主）即可一鍵推出。')+'</div>';
   h+='<div class="mat-add"><input id="matSubj" maxlength="40" placeholder="主題（選填）"><textarea id="matText" rows="3" placeholder="內容／題目…"></textarea>';
   h+='<div class="mat-colors" id="matColors"></div>';
   h+='<button class="btn btn-gold" onclick="saveMaterial()">'+(_matEdit?'更新教材':'＋ 加入教材庫')+'</button>'+(_matEdit?'<button class="btn btn-ghost" style="margin-top:6px" onclick="cancelMatEdit()">取消編輯</button>':'')+'</div>';

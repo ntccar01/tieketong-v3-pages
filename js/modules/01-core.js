@@ -21,7 +21,7 @@ var FEATURE_PERMISSIONS={
   openHistory:{appRole:'teacher',message:'學生版無法導入或主持既有教室'},
   importRoomFile:{appRole:'teacher',message:'學生版無法匯入教室備份'},
   importRoom:{appRole:'teacher',message:'學生版無法導入或主持既有教室'},
-  materials:{appRole:'teacher',hostOnly:true,message:'此功能限教師端房主使用'},
+  materials:{appRole:'teacher',message:'教材庫限教師端使用'},
   projects:{appRole:'teacher',hostOnly:true,message:'此功能限教師端房主使用'},
   export:{appRole:'teacher',hostOnly:true,message:'匯出功能限教師端房主使用'},
   roll:{appRole:'teacher',hostOnly:true,message:'抽座號限教師端房主使用'},
