@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>貼課通 v3 · 學生版（加入課堂）</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-app-role="student">
+
+<!-- ===================== LOBBY ===================== -->
+<div id="lobby">
+  <div class="brand">貼課通<span class="en">課堂即時牆 · 學生版 v3</span></div>
+  <div class="tag">輸入老師提供的房間代碼，加入課堂一起貼文字、圖片、影音、PDF — 即時同步</div>
+
+  <div class="restore" id="restore" style="display:none">
+    <div class="r-info" id="rInfo"></div>
+    <div class="r-btns">
+      <button class="r-yes" onclick="doRestore()">↻ 復原上次資料</button>
+      <button class="r-no" onclick="discardRestore()">清除</button>
+    </div>
+  </div>
+
+  <input class="fld" id="nameIn" placeholder="你的暱稱" maxlength="16" autocomplete="off">
+
+  <input type="file" id="importFile" accept="application/json,.json" style="display:none">
+
+  <div class="sec-t">加入課堂</div>
+  <div class="join-row">
+    <input class="fld" id="codeIn" placeholder="房間代碼" maxlength="6" autocomplete="off">
+    <input class="fld" id="joinPassIn" placeholder="密碼（若有）" maxlength="20" autocomplete="off">
+    <button class="btn-join" onclick="joinRoom()">加入</button>
+  </div>
+
+  <details class="netset" id="netSet">
+    <summary>🔧 連線設定（進階・學校／公司網路連不上時）</summary>
+    <div class="ns-grp">TURN 中繼伺服器（最能解決「有人連不上」）</div>
+    <input class="fld ns-fld" id="netTurnUrl" placeholder="turn:your.turn.server:443?transport=tcp" autocomplete="off">
+    <div class="join-row"><input class="fld ns-fld" id="netTurnUser" placeholder="TURN 帳號" autocomplete="off"><input class="fld ns-fld" id="netTurnCred" placeholder="TURN 密碼" autocomplete="off"></div>
+    <label class="ns-chk"><input type="checkbox" id="netForceRelay"> 強制走中繼（最穩定，速度略慢）</label>
+    <div class="ns-grp">自訂 PeerServer（選填，取代公用信令）</div>
+    <div class="join-row"><input class="fld ns-fld" id="netPsHost" placeholder="PeerServer host（網域）" autocomplete="off"><input class="fld ns-fld" id="netPsPort" type="number" placeholder="port（埠）" autocomplete="off"></div>
+    <div class="join-row"><input class="fld ns-fld" id="netPsPath" placeholder="path（如 /）" autocomplete="off"><input class="fld ns-fld" id="netPsKey" placeholder="key（選填）" autocomplete="off"></div>
+    <label class="ns-chk"><input type="checkbox" id="netPsSecure" checked> 使用 HTTPS/WSS（secure）</label>
+    <div class="ns-row"><button class="btn btn-ghost ns-btn" onclick="saveNet()">💾 儲存設定</button><button class="btn btn-ghost ns-btn" onclick="resetNet()">↺ 還原預設</button></div>
+    <div class="ns-hint">連不上多半是網路擋住 P2P 直連。建議填入自己的 TURN（或先勾「強制走中繼」）。設定只存在本機瀏覽器，僅影響你這台，下次連線生效。</div>
+  </details>
+
+  <div class="status" id="status"></div>
+</div>
+
+<!-- ===================== ROOM ===================== -->
+<div id="room">
+  <div class="topbar">
+    <button class="rb-home" id="homeBtn" onclick="goHome()" title="回到貼課通首頁">🏠 首頁</button>
+    <div class="rb-title" id="roomTitle">貼課通</div>
+    <span class="ro-tag" id="roTag" style="display:none">唯讀</span>
+    <span class="conn-pill" id="connPill" style="display:none" onclick="connPillClick()"></span>
+    <div class="rb-code" id="roomCode" onclick="copyCode()">— <small>點擊複製</small></div>
+    <div class="room-clock" id="roomClock" title="教室已進行時間">⏱ 00:00</div>
+    <div class="rb-spacer"></div>
+    <div class="tool-strip">
+      <button class="rb-exp" id="handBtn" onclick="handBtnClick()" title="舉手">✋ 舉手</button>
+      <button class="rb-exp" id="qaBtn" onclick="openQA()" title="匿名提問">❓ 提問</button>
+      <button class="rb-exp" id="pulseBtn" onclick="openPulse()" title="理解度紅綠燈（懂了／太快／聽不懂）">🚦 理解度</button>
+      <button class="rb-exp" onclick="openFilterBar()" title="搜尋／篩選貼文">🔍 搜尋</button>
+      <button class="rb-exp" onclick="openSlides()" title="簡報模式播放（一則一頁）">▶ 簡報</button>
+
+      <details class="tool-menu host-menu" id="commonToolMenu">
+        <summary class="rb-exp">常用</summary>
+        <div class="tool-popover">
+          <button class="rb-exp" id="timerBtn" onclick="openTimer('☕ 休息')" title="倒數計時器（提醒休息剩餘時間）" style="display:none">⏱️ 計時</button>
+          <button class="rb-exp" id="drawBtn" onclick="openDraw()" title="塗鴉畫布（房主）" style="display:none">🎨 畫布</button>
+          <button class="rb-exp" id="collabBtn" onclick="toggleCollab()" title="協作白板：開放全班一起畫（房主）" style="display:none">🖌️ 協作白板</button>
+          <button class="rb-exp" id="shareBtn" onclick="openShare()" title="分享螢幕／鏡頭給全班（房主）" style="display:none">📹 分享</button>
+        </div>
+      </details>
+
+      <details class="tool-menu host-menu" id="activityToolMenu">
+        <summary class="rb-exp">活動</summary>
+        <div class="tool-popover">
+          <button class="rb-exp" id="buzzBtn" onclick="openBuzz()" title="搶答鈴（房主）" style="display:none">🔔 搶答</button>
+          <button class="rb-exp" id="exitBtn" onclick="openExit()" title="退場券：下課前收集回饋（房主）" style="display:none">🎟️ 退場券</button>
+          <button class="rb-exp" id="rollBtn" onclick="openRoll()" title="抽座號／隨機點名：滾動定格，全班同步（房主）" style="display:none">🎰 抽座號</button>
+        </div>
+      </details>
+
+      <details class="tool-menu host-menu" id="manageToolMenu">
+        <summary class="rb-exp">管理</summary>
+        <div class="tool-popover">
+          <button class="rb-exp" id="teachBtn" onclick="openTeach()" title="教師管理（僅房主）" style="display:none">🧑‍🏫 教師</button>
+          <button class="rb-exp" id="kanbanBtn" onclick="openKanban()" title="看板分欄（分組/分主題）" style="display:none">🗂️ 看板</button>
+          <button class="rb-exp" id="matBtn" onclick="openMaterials()" title="教材庫：預備貼文一鍵推出（房主）" style="display:none">📋 教材庫</button>
+          <button class="rb-exp" id="projBtn" onclick="openProjects()" title="專案庫：儲存／開啟整面牆（房主）" style="display:none">📁 專案</button>
+          <button class="rb-exp" id="recBtn" onclick="startRecord()" title="錄製一小段操作示範，發布給全班重播（房主）" style="display:none">⏺️ 錄製</button>
+        </div>
+      </details>
+
+      <details class="tool-menu host-menu" id="outputToolMenu">
+        <summary class="rb-exp">輸出</summary>
+        <div class="tool-popover tool-popover-right">
+          <button class="rb-exp" onclick="openScores()" title="評分總計（每人總得分排行）">📊 評分總計</button>
+          <button class="rb-exp" id="exportBtn" onclick="openExport()" title="匯出（房主）" style="display:none">⤓ 匯出</button>
+          <button class="rb-exp" onclick="exportWallImage()" title="把整面牆匯出成長圖（PNG）">🖼️ 匯出圖</button>
+        </div>
+      </details>
+
+      <button class="rb-exp" id="themeBtn" onclick="toggleTheme()" title="深色／亮色主題切換">🌙 主題</button>
+    </div>
+    <div class="rb-mem" id="memBtn" onclick="openMembers()">👥 <span id="memCount">1</span></div>
+    <button class="rb-x" onclick="leaveRoom()">離開</button>
+  </div>
+  <div id="printHead"></div>
+
+  <div id="filterBar" class="filter-bar" style="display:none">
+    <input id="fltKw" class="flt-kw" placeholder="🔍 關鍵字（主題／內容／#標籤）" oninput="applyFilterUI()">
+    <select id="fltAuthor" class="flt-sel" onchange="applyFilterUI()"><option value="">全部作者</option></select>
+    <select id="fltCol" class="flt-sel" onchange="applyFilterUI()" style="display:none"></select>
+    <button class="flt-clr" onclick="clearFilter()">清除</button>
+    <button class="flt-clr" onclick="openFilterBar(false)">✕</button>
+  </div>
+  <div id="typingBar" class="typing-bar" style="display:none"></div>
+  <div id="feed"></div>
+
+  <button class="fab" id="fab" onclick="openPost()">＋ 張貼</button>
+</div>
+
+<!-- post modal (Padlet-style) -->
+<div class="pm" id="postModal" onclick="if(event.target===this)closePost()">
+  <div class="pm-card">
+    <div class="pm-h">
+      <button class="pm-x" onclick="closePost()">✕</button>
+      <span class="pm-t" id="pmTitle">張貼到牆上</span>
+      <button class="pm-pub" id="sendBtn" onclick="sendPost()">發布</button>
+    </div>
+    <div class="pm-body">
+      <div id="quoteChip" class="quote-chip"></div>
+      <div class="pm-subj-row"><input class="pm-subj" id="subjIn" placeholder="主題" maxlength="40" autocomplete="off"><button type="button" class="emoji-btn emoji-btn-sm" onclick="toggleEmoji('subjIn',this)">😊</button></div>
+      <div class="pm-group" id="pmGroup" style="display:none">
+        <span class="pm-group-l">🗂️ 張貼到組別／欄位</span>
+        <select id="postCol" class="pm-group-sel"></select>
+      </div>
+      <div class="pm-drop" id="pmDrop">
+        <div class="pm-tools">
+          <button class="pm-tool" onclick="pickImage()"><span class="i">🖼️</span><span>圖片</span></button>
+          <button class="pm-tool" onclick="pickFile()"><span class="i">📎</span><span>檔案 / PDF</span></button>
+          <button class="pm-tool" onclick="openCamera()"><span class="i">📷</span><span>拍照</span></button>
+          <button class="pm-tool" onclick="openRecorder()"><span class="i">🎤</span><span>錄音</span></button>
+          <button class="pm-tool" id="dictBtn" onclick="toggleDictate()"><span class="i">🎙️</span><span class="dl">語音輸入</span></button>
+        </div>
+        <div class="pm-hint">可上傳圖片、PDF 或文件，也能直接把圖片貼到下方內容</div>
+      </div>
+      <div class="attach-prev" id="attachPrev">
+        <img id="attachImg" alt="">
+        <span class="nm" id="attachName"></span>
+        <button class="rm" onclick="clearAttach()">✕</button>
+      </div>
+      <textarea id="msg" rows="3" placeholder="寫點天馬行空的內容…"></textarea>
+      <div class="emoji-bar"><button type="button" class="emoji-btn" onclick="toggleEmoji('msg',this)">😊 表情</button><button type="button" class="emoji-btn" onclick="openMention(this)">@ 提及</button></div>
+      <div class="pm-color">
+        <span class="pm-color-l">卡片顏色</span>
+        <div class="cc-pick" id="ccPick"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="imgFile" accept="image/*" style="display:none">
+<input type="file" id="camFile" accept="image/*" capture="environment" style="display:none">
+<input type="file" id="docFile" accept="application/pdf,video/*,audio/*,image/*" style="display:none">
+
+<!-- camera modal -->
+<div class="cam-modal" id="cameraModal">
+  <video id="camVideo" autoplay playsinline muted></video>
+  <div class="cam-bar">
+    <button class="cam-side" onclick="closeCamera()">取消</button>
+    <button class="cam-shutter" onclick="snapCamera()" title="拍照"></button>
+    <button class="cam-side" onclick="flipCamera()">🔄 翻轉</button>
+  </div>
+</div>
+
+<!-- audio recorder modal -->
+<div class="cmodal" id="recModal" onclick="if(event.target===this)closeRecorder()">
+  <div class="cm-card">
+    <div class="cm-h">🎤 錄音貼文<button class="cm-x" onclick="closeRecorder()">✕</button></div>
+    <div class="rec-time" id="recTime">00:00</div>
+    <button class="btn btn-gold" id="recToggle" onclick="toggleRec()">● 開始錄音</button>
+    <audio id="recPreview" controls style="display:none;width:100%;margin-top:12px"></audio>
+    <button class="btn btn-gold" id="recUse" onclick="useRecording()" style="display:none;margin-top:10px">使用這段錄音</button>
+    <div class="ms-hint" style="margin-top:10px">最長 3 分鐘；完成後會變成一則語音貼文。</div>
+  </div>
+</div>
+
+<!-- in-place card annotation bar -->
+<div id="annoBar">
+  <div class="dgroup">
+    <button class="dtool active" data-tool="pen" onclick="setTool('pen')">✏️ 筆</button>
+    <button class="dtool" data-tool="text" onclick="setTool('text')">🅣 字</button>
+    <button class="dtool" data-tool="erase" onclick="setTool('erase')">🧽 擦</button>
+  </div>
+  <div class="dgroup dcolors" id="aColors"></div>
+  <div class="dgroup dsizes" id="aSizes"></div>
+  <div class="dgroup"><button class="dtool" onclick="clearCardAnno()">🗑️ 清除</button></div>
+  <div class="dgroup">
+    <button class="dtool" onclick="closeCardAnno()">取消</button>
+    <button class="dpost" onclick="doneCardAnno()">完成</button>
+  </div>
+</div>
+<input class="anno-text-in" id="annoTextIn" maxlength="60" style="display:none">
+
+<!-- drawing canvas modal (host) -->
+<div class="draw" id="drawModal">
+  <div class="draw-bar">
+    <div class="dgroup">
+      <button class="dtool active" data-tool="pen" onclick="setTool('pen')">✏️ 筆</button>
+      <button class="dtool" data-tool="text" onclick="setTool('text')">🅣 文字</button>
+      <button class="dtool" id="toolErase" data-tool="erase" onclick="setTool('erase')">🧽 擦</button>
+    </div>
+    <div class="dgroup dtext-opts" id="dTextOpts" style="display:none">
+      <select id="dFont" class="dsel" onchange="drawFont=this.value;updateTextPreview()" title="字型">
+        <option value='"Noto Sans TC","Microsoft JhengHei",sans-serif'>黑體</option>
+        <option value='"Noto Serif TC","PMingLiU",serif'>明體</option>
+        <option value='"DFKai-SB","標楷體","KaiTi",cursive'>楷體</option>
+        <option value='"Comic Sans MS","cursive"'>手寫</option>
+        <option value='monospace'>等寬</option>
+      </select>
+      <select id="dFontSize" class="dsel" onchange="drawFontSize=+this.value;updateTextPreview()" title="字級">
+        <option value="20">小</option>
+        <option value="28" selected>中</option>
+        <option value="40">大</option>
+        <option value="56">特大</option>
+        <option value="80">超大</option>
+      </select>
+    </div>
+    <div class="dgroup dcolors" id="dColors"></div>
+    <div class="dgroup dsizes" id="dSizes"></div>
+    <button class="dtool" onclick="$('drawImgIn').click()" title="插入圖片（或 Ctrl+V 貼上）">🖼️ 圖片</button>
+    <input type="file" id="drawImgIn" accept="image/*" style="display:none">
+    <button class="dtool" onclick="clearCanvas()">🗑️ 清除</button>
+    <div class="dgrow"></div>
+    <button class="dtool" onclick="closeDraw()">關閉</button>
+    <button class="dpost" id="dpostBtn" onclick="postDraw()">張貼到牆上</button>
+  </div>
+  <div class="draw-area" id="drawArea">
+    <canvas id="board"></canvas>
+    <input class="draw-text-in" id="drawTextIn" maxlength="60" placeholder="輸入文字後按 Enter" style="display:none">
+  </div>
+</div>
+
+<!-- slideshow / presentation mode -->
+<div class="slideshow" id="slideShow">
+  <div class="ss-top">
+    <span class="ss-count" id="ssCount"></span>
+    <button class="ss-x" onclick="closeSlides()">✕ 關閉</button>
+  </div>
+  <button class="ss-nav prev" onclick="slidePrev()">‹</button>
+  <div class="ss-stage" id="ssStage">
+    <div id="ssHolder"></div>
+    <canvas id="ssAnno"></canvas>
+    <div id="ssLaser"></div>
+  </div>
+  <button class="ss-nav next" onclick="slideNext()">›</button>
+  <div class="ss-bottom">
+    <button class="ss-pg" onclick="slidePrev()">‹ 上一頁</button>
+    <button class="ss-pg" id="ssAuto" onclick="toggleAutoPlay()">▶ 自動播放</button>
+    <button class="ss-pg ss-host" id="ssLaserBtn" onclick="toggleLaser()" style="display:none">🔴 雷射筆</button>
+    <button class="ss-pg ss-host" id="ssAnnoBtn" onclick="toggleSlAnno()" style="display:none">✏️ 標註</button>
+    <button class="ss-pg ss-host" id="ssClearBtn" onclick="clearSlAnno()" style="display:none">🧽 清除</button>
+    <div class="ss-dots" id="ssDots"></div>
+    <button class="ss-pg" onclick="slideNext()">下一頁 ›</button>
+  </div>
+</div>
+
+<!-- history (recent rooms) sheet -->
+<div class="sheet" id="histSheet" onclick="if(event.target===this)closeHistory()">
+  <div class="sheet-c">
+    <div class="hist-head"><h3>最近的教室（最多 20 筆）</h3><button class="hist-clear" onclick="clearHistory()">清除全部</button></div>
+    <div class="hist-hint">選一筆「導入」即可把那次的整面牆載回來繼續用（房主會以原代碼重新上線）。</div>
+    <div id="histList"></div>
+  </div>
+</div>
+
+<!-- shared timer badge -->
+<div class="timer-badge" id="timerBadge"><span id="timerLabel" style="display:none"></span><span id="timerTime">00:00</span><button class="tb-x" id="tbStop" onclick="stopTimer()" style="display:none">✕</button></div>
+
+<!-- QR modal -->
+<div class="cmodal" id="qrModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="cm-card">
+    <div class="cm-h">房號 QR Code<button class="cm-x" onclick="$('qrModal').classList.remove('show')">✕</button></div>
+    <div class="qr-box" id="qrBox"></div>
+    <div class="qr-code" id="qrCodeTxt"></div>
+    <div class="qr-hint">學生用手機掃描即可加入（須以網址開啟本頁時才有效）；也可直接輸入上方代碼。</div>
+  </div>
+</div>
+
+<!-- timer modal -->
+<div class="cmodal" id="timerModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="cm-card">
+    <div class="cm-h"><span id="tmTitle">倒數計時器</span><button class="cm-x" onclick="$('timerModal').classList.remove('show')">✕</button></div>
+    <div class="tm-presets" id="tmPresets"></div>
+    <div class="tm-custom"><input id="tmMin" type="number" min="1" max="180" value="5" class="fld"> 分鐘 <button class="btn btn-gold" onclick="startTimer(($('tmMin').value)*60)">開始</button></div>
+    <label class="tm-autolock"><input type="checkbox" id="tmAutoLock"> 結束時自動鎖定發文（凍結學生畫面）</label>
+  </div>
+</div>
+
+<!-- random pick modal -->
+<div class="cmodal" id="pickModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="cm-card">
+    <div class="cm-h">隨機抽人<button class="cm-x" onclick="$('pickModal').classList.remove('show')">✕</button></div>
+    <div class="pick-name" id="pickName">—</div>
+    <div class="pick-btns"><button class="btn btn-gold" onclick="randomPick()">🎲 再抽一次</button></div>
+  </div>
+</div>
+
+<!-- export menu -->
+<div class="cmodal" id="exportModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="cm-card">
+    <div class="cm-h">匯出<button class="cm-x" onclick="$('exportModal').classList.remove('show')">✕</button></div>
+    <button class="ex-opt" onclick="$('exportModal').classList.remove('show');exportRoomFile()">📦 整間教室檔案（.json，可換電腦導入）</button>
+    <button class="ex-opt" onclick="$('exportModal').classList.remove('show');exportCSV()">📄 文字貼文（.csv，Excel 可開）</button>
+    <button class="ex-opt" onclick="$('exportModal').classList.remove('show');exportImages()">🖼️ 逐張圖片（每則一張 PNG，打包 .zip）</button>
+    <button class="ex-opt" onclick="$('exportModal').classList.remove('show');exportPPTX()">📊 PPTX 簡報（每則一頁）</button>
+    <button class="ex-opt" onclick="$('exportModal').classList.remove('show');exportPDF()">🖨️ 整面牆列印 / 存 PDF</button>
+  </div>
+</div>
+
+<!-- score summary modal -->
+<div class="cmodal" id="scoreModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="cm-card cm-wide">
+    <div class="cm-h">📊 評分總計<button class="cm-x" onclick="$('scoreModal').classList.remove('show')">✕</button></div>
+    <div class="score-legend">配分：👍 1 分　⭐ 2 分　❤️ 3 分　🎉 5 分（依每則貼文收到的反應累計到作者）</div>
+    <div id="scoreList"></div>
+  </div>
+</div>
+
+<!-- announcement marquee -->
+<div id="hostNote" class="host-note" onclick="hostNoteClick()"></div>
+<div id="announceBar" class="announce-bar" style="display:none"></div>
+<!-- freeze overlay (students) -->
+<div id="freezeOverlay" class="freeze-ov"><div class="fz-box">🧊<div class="fz-t">老師已暫停畫面</div><div class="fz-s">請先停下操作，注意聽講</div></div></div>
+<!-- check-in bar (students, on roll call) -->
+<div id="checkinBar" class="checkin-bar" style="display:none"><span>📋 老師點名中</span><button onclick="doCheckin()">我在，簽到 ✅</button></div>
+<!-- raise-hand queue (host) -->
+<div class="cmodal" id="handsModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="cm-card">
+    <div class="cm-h">✋ 舉手排隊 <span id="handsSum" class="r-sum"></span><button class="cm-x" onclick="$('handsModal').classList.remove('show')">✕</button></div>
+    <div id="handsList" class="roster-list"></div>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="clearHands()">清除全部</button>
+  </div>
+</div>
+<!-- anonymous Q&A (everyone) -->
+<div class="cmodal" id="qaModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="cm-card">
+    <div class="cm-h">❓ 匿名提問<button class="cm-x" onclick="$('qaModal').classList.remove('show')">✕</button></div>
+    <div class="poll-ansinput"><input id="qaIn" maxlength="200" placeholder="匿名問老師一個問題…"><button type="button" class="emoji-btn" onclick="toggleEmoji('qaIn',this)">😊</button><button class="btn btn-gold" onclick="submitQuestion()">送出</button></div>
+    <div class="ms-hint" style="margin:2px 0 12px">不會顯示姓名；大家可按讚，讚多的排前面。</div>
+    <div id="qaList" class="roster-list"></div>
+  </div>
+</div>
+
+<!-- 理解度紅綠燈（全員） -->
+<div class="cmodal" id="pulseModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="cm-card">
+    <div class="cm-h">🚦 理解度紅綠燈<button class="cm-x" onclick="$('pulseModal').classList.remove('show')">✕</button></div>
+    <div id="pulseBody"></div>
+  </div>
+</div>
+<!-- 螢幕／鏡頭分享（房主） -->
+<div class="cmodal" id="shareModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="cm-card">
+    <div class="cm-h">📹 螢幕／鏡頭分享<button class="cm-x" onclick="$('shareModal').classList.remove('show')">✕</button></div>
+    <div id="shareBody"></div>
+  </div>
+</div>
+<!-- 專案庫 -->
+<div class="cmodal" id="projModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="cm-card"><div class="cm-h">📁 專案庫<button class="cm-x" onclick="$('projModal').classList.remove('show')">✕</button></div><div id="projBody"></div></div>
+</div>
+<input type="file" id="projImport" accept="application/json,.json" style="display:none" onchange="if(this.files[0])importProjectFile(this.files[0]);this.value='';">
+<!-- 錄製選項 -->
+<div class="cmodal" id="recModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="cm-card"><div class="cm-h">⏺️ 錄製操作示範<button class="cm-x" onclick="$('recModal').classList.remove('show')">✕</button></div>
+    <div class="ms-hint" style="margin-bottom:10px">錄一小段操作畫面，發布給全班重複播放。可加入：</div>
+    <label class="tm-autolock"><input type="checkbox" id="recMic" checked> 🎙️ 麥克風語音旁白</label>
+    <label class="tm-autolock"><input type="checkbox" id="recCam"> 📷 鏡頭小窗（疊在右下角，含語音）</label>
+    <button class="btn btn-gold" style="margin-top:14px" onclick="beginRecord()">⏺️ 開始錄製</button>
+    <div class="ms-hint" style="margin-top:10px">需以 https／localhost 開啟；建議錄 10～30 秒，最長 90 秒。</div>
+  </div>
+</div>
+<!-- 抽座號／點名 -->
+<div class="cmodal" id="rollModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="cm-card"><div class="cm-h">🎰 抽座號／點名<button class="cm-x" onclick="$('rollModal').classList.remove('show')">✕</button></div><div id="rollBody"></div></div>
+</div>
+<div id="rollStage" class="roll-stage" onclick="if(event.target===this)$('rollStage').style.display='none'">
+  <div class="rs-inner"><div class="rs-label" id="rsLabel">抽座號</div><div class="rs-window"><div class="rs-num" id="rsNum">--</div></div><div class="rs-result" id="rsResult"></div><button class="rs-close" id="rsClose" onclick="rollOff()" style="display:none">關閉</button></div>
+</div>
+<!-- 教材庫 -->
+<div class="cmodal" id="materialModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="cm-card"><div class="cm-h">📋 教材庫<button class="cm-x" onclick="$('materialModal').classList.remove('show')">✕</button></div><div id="matBody"></div></div>
+</div>
+<!-- 錄製操作指示列 -->
+<div id="recBar" class="rec-bar" style="display:none"><span class="rec-dot"></span><span id="recTime">00:00</span><span>錄製操作中…</span><button onclick="stopRecord()">⏹ 停止並發布</button></div>
+<!-- 搶答鈴（房主） -->
+<div class="cmodal" id="buzzModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="cm-card"><div class="cm-h">🔔 搶答鈴<button class="cm-x" onclick="$('buzzModal').classList.remove('show')">✕</button></div><div id="buzzBody"></div></div>
+</div>
+<!-- 退場券 -->
+<div class="cmodal" id="exitModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="cm-card"><div class="cm-h">🎟️ 退場券<button class="cm-x" onclick="$('exitModal').classList.remove('show')">✕</button></div><div id="exitBody"></div></div>
+</div>
+<!-- 學生搶答 overlay -->
+<div id="buzzGuest" class="buzz-guest" style="display:none">
+  <div class="bg-inner"><div class="bg-q">🔔 老師開放搶答</div><button id="bgBtn" class="bg-btn" onclick="guestBuzz()">🔔<span>搶答！</span></button><div id="bgResult" class="bg-result"></div><div id="bgRank" class="bg-rank"></div><button class="bg-close" onclick="$('buzzGuest').style.display='none'">收起</button></div>
+</div>
+<!-- 聚光燈 -->
+<div id="spotlight" class="spotlight" onclick="if(event.target===this)hideSpotlight()" style="display:none">
+  <div class="sl-card"><div id="slBody" class="sl-body"></div></div>
+  <div class="sl-bar"><span class="sl-tag">🔦 老師聚焦中</span><button class="sl-btn" id="slClose" onclick="spotlightOff()" style="display:none">✕ 關閉</button></div>
+</div>
+<div id="mentionPop" class="mention-pop" style="display:none"></div>
+<!-- 學生端觀看視窗 -->
+<div id="shareViewer" class="share-viewer">
+  <div id="shareStage" class="sv-stage"><video id="shareVid" autoplay playsinline></video></div>
+  <div class="sv-bar"><span class="sv-title">📡 老師畫面分享中</span><button class="sv-btn" onclick="fsShareViewer()">⛶ 全螢幕</button><button class="sv-btn" onclick="minShareViewer()">— 縮小</button></div>
+</div>
+<div id="sharePill" class="share-pill" style="display:none" onclick="reopenShareViewer()">📡 老師分享中・點此放大</div>
+
+<!-- poll setup (host) -->
+<div class="cmodal" id="pollSetup" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="cm-card">
+    <div class="cm-h">🗳️ 即時投票／問答<button class="cm-x" onclick="$('pollSetup').classList.remove('show')">✕</button></div>
+    <input id="pollQ" class="pm-subj" placeholder="輸入題目…" maxlength="140" autocomplete="off">
+    <div class="poll-types">
+      <label><input type="radio" name="ptype" value="single" checked onchange="pollTypeChange()"> 單選</label>
+      <label><input type="radio" name="ptype" value="multi" onchange="pollTypeChange()"> 複選</label>
+      <label><input type="radio" name="ptype" value="tf" onchange="pollTypeChange()"> 是非</label>
+      <label><input type="radio" name="ptype" value="text" onchange="pollTypeChange()"> 問答（簡答）</label>
+    </div>
+    <textarea id="pollOpts" class="kb-cols" rows="4" placeholder="每行一個選項（最多 8 個）"></textarea>
+    <button class="btn btn-gold" onclick="startPoll()">開始投票</button>
+  </div>
+</div>
+<!-- live word cloud (everyone) -->
+<div class="poll-modal" id="cloudModal">
+  <div class="poll-card">
+    <div class="poll-q" id="cloudQText"></div>
+    <div class="poll-type-tag" id="cloudTag">即時文字雲</div>
+    <div class="cloud-wrap" id="cloudWrap"></div>
+    <div class="poll-foot" id="cloudFoot"></div>
+  </div>
+</div>
+
+<!-- live poll panel (everyone) -->
+<div class="poll-modal" id="pollModal">
+  <div class="poll-card">
+    <div class="poll-q" id="pollQText"></div>
+    <div class="poll-type-tag" id="pollTypeTag"></div>
+    <div class="poll-body" id="pollBody"></div>
+    <div class="poll-foot" id="pollFoot"></div>
+  </div>
+</div>
+
+<!-- teacher management modal (host only) -->
+<div class="cmodal" id="teachModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="cm-card">
+    <div class="cm-h">🧑‍🏫 教師管理<button class="cm-x" onclick="closeTeach()">✕</button></div>
+    <div class="ms-hint" style="margin:-4px 0 12px">只有開立教室的房主可以使用以下功能。</div>
+    <div class="ms-tools" id="teachTools"></div>
+  </div>
+</div>
+
+<!-- roster / attendance modal -->
+<div class="cmodal" id="rosterModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="cm-card">
+    <div class="cm-h">📋 點名／出席 <span id="rosterSum" class="r-sum"></span><button class="cm-x" onclick="$('rosterModal').classList.remove('show')">✕</button></div>
+    <button class="btn btn-gold" style="margin-bottom:12px" onclick="startRollcall()">發起簽到（請學員點「我在」）</button>
+    <div id="rosterList" class="roster-list"></div>
+  </div>
+</div>
+
+<!-- kanban config modal -->
+<div class="cmodal" id="kanbanModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="cm-card">
+    <div class="cm-h">🗂️ 看板分欄<button class="cm-x" onclick="$('kanbanModal').classList.remove('show')">✕</button></div>
+    <label class="kb-row"><input type="checkbox" id="kbToggle"> 開啟看板模式（把貼文分到不同欄位）</label>
+    <div class="kb-presets"><button class="qbtn" onclick="kbPreset('group')">分組</button><button class="qbtn" onclick="kbPreset('progress')">進度</button><button class="qbtn" onclick="kbPreset('topic')">主題</button></div>
+    <div class="kb-hint">欄位名稱（每行一個，最多 8 欄）：</div>
+    <textarea id="kbCols" class="kb-cols" rows="5" placeholder="第一組&#10;第二組&#10;第三組"></textarea>
+    <button class="btn btn-gold" onclick="applyKanbanFromUI()">套用</button>
+  </div>
+</div>
+
+<!-- members sheet -->
+<div class="sheet" id="memSheet" onclick="if(event.target===this)closeMembers()">
+  <div class="sheet-c"><h3>在線成員</h3><div id="memList"></div></div>
+</div>
+<!-- lightbox -->
+<div class="lb" id="lightbox" onclick="this.classList.remove('show')"><img id="lbImg" alt=""></div>
+<div class="toast" id="toast"></div>
+  <script>window.APP_ROLE='student';</script>
+  <script src="js/modules/01-core.js"></script>
+  <script src="js/modules/02-realtime.js"></script>
+  <script src="js/modules/03-posting-files.js"></script>
+  <script src="js/modules/04-wall-rendering.js"></script>
+  <script src="js/modules/05-teacher-interactions.js"></script>
+  <script src="js/modules/06-wall-interactions.js"></script>
+  <script src="js/modules/07-classroom-tools.js"></script>
+  <script src="js/modules/08-storage-history.js"></script>
+  <script src="js/modules/09-canvas.js"></script>
+  <script src="js/modules/10-export-presenter.js"></script>
+  <script src="js/modules/11-pulse-share.js"></script>
+  <script src="js/student-lock.js"></script>
+</body>
+</html>
