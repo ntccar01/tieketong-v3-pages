@@ -1,4 +1,4 @@
-﻿var pulse={}, myPulse='', pulseAgg={g:0,y:0,r:0,total:0};
+var pulse={}, myPulse='', pulseAgg={g:0,y:0,r:0,total:0};
 var _shareOn=false, shareStream=null, shareCalls={}, shareKind='', _incomingCall=null;
 var PULSE_DEF=[['g','\uD83D\uDFE2','跟得上'],['y','\uD83D\uDFE1','有點快'],['r','\uD83D\uDD34','聽不懂']];
 function openPulse(){renderPulse();$('pulseModal').classList.add('show');}
@@ -62,5 +62,10 @@ function hideShareViewer(){var ov=$('shareViewer');if(ov)ov.classList.remove('sh
 function minShareViewer(){var ov=$('shareViewer');if(ov)ov.classList.remove('show');var pill=$('sharePill');if(pill&&_incomingCall)pill.style.display='';}
 function reopenShareViewer(){var ov=$('shareViewer');if(ov)ov.classList.add('show');var pill=$('sharePill');if(pill)pill.style.display='none';}
 function fsShareViewer(){var el=$('shareStage');if(!el)return;if(document.fullscreenElement){if(document.exitFullscreen)document.exitFullscreen();}else if(el.requestFullscreen){el.requestFullscreen().catch(function(){});}}
-(function(){var m=$('msg');if(m)m.addEventListener('input',flagTyping);try{if(localStorage.getItem('shr_theme')==='dark')document.body.classList.add('theme-dark');}catch(e){}updateThemeBtn();try{loadMaterials();}catch(e){}})();
+function closeToolMenus(exceptMenu){document.querySelectorAll('.tool-strip .tool-menu[open]').forEach(function(menu){if(menu!==exceptMenu)menu.open=false;});}
+function initToolMenus(){var menus=document.querySelectorAll('.tool-strip .tool-menu');menus.forEach(function(menu){if(menu.dataset.menuBound)return;menu.dataset.menuBound='1';var summary=menu.querySelector('summary');if(summary)summary.addEventListener('click',function(){closeToolMenus(menu);});menu.addEventListener('toggle',function(){if(menu.open)closeToolMenus(menu);});});
+  document.addEventListener('click',function(e){var menu=e.target.closest&&e.target.closest('.tool-strip .tool-menu');if(menu)return;closeToolMenus();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeToolMenus();});
+  document.addEventListener('click',function(e){if(!(e.target.closest&&e.target.closest('.tool-strip .tool-popover button')))return;setTimeout(function(){closeToolMenus();},0);});}
+(function(){var m=$('msg');if(m)m.addEventListener('input',flagTyping);try{if(localStorage.getItem('shr_theme')==='dark')document.body.classList.add('theme-dark');}catch(e){}updateThemeBtn();try{loadMaterials();}catch(e){}initToolMenus();})();
 
