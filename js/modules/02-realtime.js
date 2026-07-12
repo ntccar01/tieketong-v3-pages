@@ -1,4 +1,4 @@
-﻿/* ===================== PeerJS (cross-network, 同系列) ===================== */
+/* ===================== PeerJS (cross-network, 同系列) ===================== */
 var peerLoaded=false,peerLoading=false;
 var PEER_CDNS=['https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js','https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js','https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js'];
 var ICE=[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun.relay.metered.ca:80'},
@@ -175,7 +175,7 @@ function guestHandle(o){
   if(o.t==='sharestop'){hideShareViewer();toast('老師結束了分享');return;}
   if(o.t==='denied'){_jDone=true;_leaving=true;try{hostConn&&hostConn.close();}catch(e){}$('room').classList.remove('show');$('lobby').style.display='';showStatus((o.reason||'無法加入房間')+'，請確認後再試',true);return;}
   if(o.t==='queued'){showStatus('房間已滿，排隊中… 等待房主准許加入',false);return;}
-  if(o.t==='init'){members=o.members||{};feed=o.feed||[];if(o.roomName)applyName(o.roomName);if(typeof o.allowOpen!=='undefined')allowOpen=o.allowOpen;kanbanOn=!!o.kanbanOn;columns=o.columns||[];maxPosts=o.maxPosts||0;roomAnnounce=o.announce||'';frozen=!!o.frozen;roomStartTs=o.roomStart||roomStartTs||Date.now();enterRoom();applyTheme(o.bg||'');applySelfPerms();showAnnounce(roomAnnounce);applyFreeze(frozen);if(o.poll){activePoll=o.poll;myChoices=[];showPoll(activePoll);}questions=o.questions||[];if(o.cloud){activeCloud=o.cloud;showCloud(activeCloud);}if(o.buzz&&o.buzz.open){showBuzzGuest();guestBuzzRank(o.buzz.list||[]);}if(o.exit&&o.exit.open!==false){showExitGuest(o.exit.q||'退場券');}updateHandBtn();showStatus('');saveSession();return;}
+  if(o.t==='init'){members=o.members||{};feed=o.feed||[];if(o.roomName)applyName(o.roomName);if(typeof o.allowOpen!=='undefined')allowOpen=o.allowOpen;kanbanOn=!!o.kanbanOn;columns=o.columns||[];maxPosts=o.maxPosts||0;roomAnnounce=o.announce||'';frozen=!!o.frozen;roomStartTs=o.roomStart||roomStartTs||Date.now();enterRoom();applyTheme(o.bg||'');applySelfPerms();showAnnounce(roomAnnounce);applyFreeze(frozen);if(o.poll){activePoll=o.poll;myChoices=[];myPollSubmitted=false;showPoll(activePoll);}questions=o.questions||[];if(o.cloud){activeCloud=o.cloud;showCloud(activeCloud);}if(o.buzz&&o.buzz.open){showBuzzGuest();guestBuzzRank(o.buzz.list||[]);}if(o.exit&&o.exit.open!==false){showExitGuest(o.exit.q||'退場券');}updateHandBtn();showStatus('');saveSession();return;}
   if(o.t==='post'){if(findPost(o.post.id))return;feed.push(o.post);addPostEl(o.post);saveSession();return;}
   if(o.t==='members'){members=o.members||{};updateMemUI();applySelfPerms();return;}
   if(o.t==='removed'){applyRemove(o.id);return;}
@@ -195,7 +195,7 @@ function guestHandle(o){
   if(o.t==='autogroup'){applyGroups(o.groups||{});saveSession();return;}
   if(o.t==='announce'){roomAnnounce=o.text||'';showAnnounce(roomAnnounce);saveSession();return;}
   if(o.t==='freeze'){frozen=!!o.on;applyFreeze(frozen);return;}
-  if(o.t==='pollstart'){activePoll=o.poll;activePoll.open=true;myChoices=[];myAnswer='';showPoll(activePoll);return;}
+  if(o.t==='pollstart'){activePoll=o.poll;activePoll.open=true;myChoices=[];myAnswer='';myPollSubmitted=false;showPoll(activePoll);return;}
   if(o.t==='pollresult'){if(activePoll&&activePoll.id===o.id){activePoll.counts=o.counts;activePoll.total=o.total;if($('pollModal').classList.contains('show'))showPoll(activePoll);}return;}
   if(o.t==='pollanswers'){if(activePoll&&activePoll.id===o.id){activePoll.answers=o.answers||[];if($('pollModal').classList.contains('show'))showPoll(activePoll);}return;}
   if(o.t==='pollend'){if(activePoll&&activePoll.id===o.id){activePoll.open=false;showPoll(activePoll);}return;}

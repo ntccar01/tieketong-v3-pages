@@ -1,4 +1,4 @@
-﻿function idbOpen(cb){if(_db){cb(_db);return;}try{var rq=indexedDB.open(DB_NAME,1);
+function idbOpen(cb){if(_db){cb(_db);return;}try{var rq=indexedDB.open(DB_NAME,1);
   rq.onupgradeneeded=function(){try{rq.result.createObjectStore(STORE);}catch(e){}};
   rq.onsuccess=function(){_db=rq.result;cb(_db);};rq.onerror=function(){cb(null);};}catch(e){cb(null);}}
 function idbSet(k,v){idbOpen(function(db){if(!db)return;try{db.transaction(STORE,'readwrite').objectStore(STORE).put(v,k);}catch(e){}});}
@@ -23,7 +23,7 @@ function applySnapshotState(s){
   myId=s.myId||myId;myName=s.myName||myName;roomName=s.roomName||'貼課通';selBg=s.bg||'';isHost=!!s.isHost;members=s.members||{};feed=s.feed||[];roomCodeStr=s.code||roomCodeStr;roomStartTs=s.roomStartTs||s.roomStart||Date.now();
   if(typeof s.allowOpen!=='undefined')allowOpen=s.allowOpen;else allowOpen=true;
   roomPass=s.roomPass||'';maxMembers=s.maxMembers||0;maxPosts=s.maxPosts||0;pending={};kanbanOn=!!s.kanbanOn;columns=s.columns||[];roomAnnounce=s.announce||'';frozen=!!s.frozen;
-  if(typeof activePoll!=='undefined'){activePoll=s.poll||null;if(typeof myChoices!=='undefined')myChoices=[];if(typeof myAnswer!=='undefined')myAnswer='';}
+  if(typeof activePoll!=='undefined'){activePoll=s.poll||null;if(typeof myChoices!=='undefined')myChoices=[];if(typeof myAnswer!=='undefined')myAnswer='';if(typeof myPollSubmitted!=='undefined')myPollSubmitted=false;}
   if(typeof questions!=='undefined')questions=Array.isArray(s.questions)?s.questions:[];
   if(typeof activeCloud!=='undefined')activeCloud=s.cloud||null;
   if(typeof pulse!=='undefined')pulse=s.pulse||{};

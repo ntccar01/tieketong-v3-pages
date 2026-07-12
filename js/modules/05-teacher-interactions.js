@@ -51,7 +51,7 @@ function exportRoster(){if(!isHost)return;function q(s){s=String(s==null?'':s);r
   var csv='\ufeff'+rows.map(function(r){return r.join(',');}).join('\r\n');
   dl('個人成績單_'+safeName(roomName)+'.csv',new Blob([csv],{type:'text/csv'}));toast('已匯出個人成績單');}
 /* ===================== 🗳️ 即時投票／問答 ===================== */
-var activePoll=null,myChoices=[],myAnswer='';
+var activePoll=null,myChoices=[],myAnswer='',myPollSubmitted=false;
 function pollTypeChange(){var t=document.querySelector('input[name="ptype"]:checked').value,showChoices=(t==='single'||t==='multi');$('pollOpts').style.display=showChoices?'':'none';var wrap=$('pollLabelStyleWrap');if(wrap)wrap.style.display=showChoices?'':'none';}
 function openPollSetup(){if(!isHost)return;$('pollQ').value='';$('pollOpts').value='';document.querySelector('input[name="ptype"][value="single"]').checked=true;var style=document.querySelector('input[name="pollLabelStyle"][value="alpha"]');if(style)style.checked=true;pollTypeChange();$('pollSetup').classList.add('show');setTimeout(function(){$('pollQ').focus();},80);}
 function startPoll(){if(!isHost)return;var q=($('pollQ').value||'').trim();if(!q){toast('請輸入題目');return;}
@@ -60,7 +60,7 @@ function startPoll(){if(!isHost)return;var q=($('pollQ').value||'').trim();if(!q
   else if(type==='text')opts=[];
   else{opts=($('pollOpts').value||'').split('\n').map(function(s){return s.trim();}).filter(Boolean).slice(0,8);if(opts.length<2){toast('請至少輸入 2 個選項');return;}}
   activePoll={id:uid(),q:q,type:type,options:opts,optionStyle:optionStyle,open:true,votes:{},counts:opts.map(function(){return 0;}),total:0,answers:[],ansMap:{}};
-  $('pollSetup').classList.remove('show');myChoices=[];myAnswer='';showPoll(activePoll);hostBroadcast({t:'pollstart',poll:pollPublic(activePoll)});}
+  $('pollSetup').classList.remove('show');myChoices=[];myAnswer='';myPollSubmitted=false;showPoll(activePoll);hostBroadcast({t:'pollstart',poll:pollPublic(activePoll)});}
 function pollPublic(p){var o={id:p.id,q:p.q,type:p.type,options:p.options,optionStyle:p.optionStyle||'',open:p.open};if(p.type==='text')o.answers=p.answers||[];else{o.counts=p.counts;o.total=p.total;}return o;}
 function tallyPoll(p){var c=p.options.map(function(){return 0;});var v=0;for(var uid in p.votes){v++;p.votes[uid].forEach(function(i){if(i>=0&&i<c.length)c[i]++;});}p.counts=c;p.total=v;}
 function setAnswer(p,uid,name,text){p.ansMap=p.ansMap||{};p.ansMap[uid]={name:name,text:text};p.answers=Object.keys(p.ansMap).map(function(u){return p.ansMap[u];});}
@@ -84,7 +84,7 @@ function showPoll(p){$('pollQText').textContent=p.q;
       var pct=p.total>0?Math.round((p.counts[i]/p.total)*100):0;
       var mark=pollOptionMark(p,i),label=(p.type==='tf'?'':esc(opt));row.innerHTML='<div class="poll-fill" style="width:'+pct+'%"></div>'+(mark?'<span class="poll-mark">'+mark+'</span>':'')+(label?'<span class="poll-label">'+label+'</span>':'')+'<span class="poll-count">'+p.counts[i]+'（'+pct+'%）</span>';
       row.onclick=function(){selectOpt(i);};body.appendChild(row);});
-    if(p.type==='multi'&&p.open){var sb2=document.createElement('button');sb2.className='btn btn-gold';sb2.textContent='送出我的答案';sb2.onclick=submitVote;foot.appendChild(sb2);}
+    if(p.type==='multi'&&p.open){var sb2=document.createElement('button');sb2.className='btn btn-gold';sb2.textContent=myPollSubmitted?'更新答案':'送出答案';sb2.onclick=submitVote;foot.appendChild(sb2);if(myPollSubmitted)foot.appendChild(Object.assign(document.createElement('div'),{className:'poll-total',textContent:'已送出，可修改選項後更新答案'}));}
     foot.appendChild(Object.assign(document.createElement('div'),{className:'poll-total',textContent:'已作答 '+p.total+' 人'}));
   }
   if(isHost){var ctr=document.createElement('div');ctr.className='poll-host-ctrl';
@@ -98,8 +98,8 @@ function selectOpt(i){if(!activePollOpen())return;var p=activePoll;
   else{myChoices=[i];submitVote();}}
 function activePollOpen(){return activePoll&&activePoll.open;}
 function submitVote(){if(!activePollOpen()||!myChoices.length)return;var p=activePoll;
-  if(isHost){p.votes[myId]=myChoices.slice();tallyPoll(p);showPoll(p);hostBroadcast({t:'pollresult',id:p.id,counts:p.counts,total:p.total});saveSession();}
-  else if(hostConn&&hostConn.open){tSend(hostConn,{t:'pollvote',id:p.id,choices:myChoices.slice(),uid:myId});showPoll(p);}}
+  if(isHost){p.votes[myId]=myChoices.slice();tallyPoll(p);myPollSubmitted=true;showPoll(p);hostBroadcast({t:'pollresult',id:p.id,counts:p.counts,total:p.total});saveSession();}
+  else if(hostConn&&hostConn.open){tSend(hostConn,{t:'pollvote',id:p.id,choices:myChoices.slice(),uid:myId});myPollSubmitted=true;showPoll(p);}}
 function endPoll(){if(!isHost||!activePoll)return;activePoll.open=false;showPoll(activePoll);hostBroadcast({t:'pollend',id:activePoll.id});saveSession();}
 function closePoll(){if(isHost)hostBroadcast({t:'pollclose'});hidePoll();activePoll=null;saveSession();}
 function hidePoll(){$('pollModal').classList.remove('show');}
