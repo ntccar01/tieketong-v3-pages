@@ -1,4 +1,4 @@
-﻿function memPosts(uid){var n=0;for(var i=0;i<feed.length;i++)if(feed[i].uid===uid)n++;return n;}
+function memPosts(uid){var n=0;for(var i=0;i<feed.length;i++)if(feed[i].uid===uid)n++;return n;}
 function memReactsGiven(uid){var n=0;feed.forEach(function(p){if(p.reactions)for(var em in p.reactions){if((p.reactions[em]||[]).indexOf(uid)>=0)n++;}});return n;}
 function memReceived(uid){var sc=0,cm=0;feed.forEach(function(p){if(p.uid===uid){sc+=postScore(p);cm+=(p.comments&&p.comments.length)||0;}});return {score:sc,comments:cm};}
 /* --- 點名 / 出席 --- */
@@ -33,7 +33,7 @@ function showAnnounce(text){var bar=$('announceBar');if(!text){bar.style.display
 /* --- 凍結畫面 --- */
 function toggleFreeze(){if(!guardFeature('freeze'))return;frozen=!frozen;hostBroadcast({t:'freeze',on:frozen});if($('teachModal')&&$('teachModal').classList.contains('show'))openTeach();toast(frozen?'已凍結學員畫面':'已解除凍結');saveSession();}
 function openTeach(){if(!guardFeature('teach'))return;
-  $('teachTools').innerHTML='<button class="tbtn" onclick="closeTeach();openPollSetup()">🗳️ 即時投票</button>'+
+  $('teachTools').innerHTML='<button class="tbtn" onclick="closeTeach();openPollSetup()">🗳️ 快問快答</button>'+
     '<button class="tbtn" onclick="closeTeach();openCloudSetup()">☁️ 即時文字雲</button>'+
     '<button class="tbtn" onclick="closeTeach();openRoster()">📋 點名／出席</button>'+
     '<button class="tbtn" onclick="closeTeach();autoGroup()">🎲 自動分組</button>'+
@@ -52,20 +52,21 @@ function exportRoster(){if(!isHost)return;function q(s){s=String(s==null?'':s);r
   dl('個人成績單_'+safeName(roomName)+'.csv',new Blob([csv],{type:'text/csv'}));toast('已匯出個人成績單');}
 /* ===================== 🗳️ 即時投票／問答 ===================== */
 var activePoll=null,myChoices=[],myAnswer='';
-function pollTypeChange(){var t=document.querySelector('input[name="ptype"]:checked').value;$('pollOpts').style.display=(t==='tf'||t==='text')?'none':'';}
-function openPollSetup(){if(!isHost)return;$('pollQ').value='';$('pollOpts').value='';document.querySelector('input[name="ptype"][value="single"]').checked=true;pollTypeChange();$('pollSetup').classList.add('show');setTimeout(function(){$('pollQ').focus();},80);}
+function pollTypeChange(){var t=document.querySelector('input[name="ptype"]:checked').value,showChoices=(t==='single'||t==='multi');$('pollOpts').style.display=showChoices?'':'none';var wrap=$('pollLabelStyleWrap');if(wrap)wrap.style.display=showChoices?'':'none';}
+function openPollSetup(){if(!isHost)return;$('pollQ').value='';$('pollOpts').value='';document.querySelector('input[name="ptype"][value="single"]').checked=true;var style=document.querySelector('input[name="pollLabelStyle"][value="alpha"]');if(style)style.checked=true;pollTypeChange();$('pollSetup').classList.add('show');setTimeout(function(){$('pollQ').focus();},80);}
 function startPoll(){if(!isHost)return;var q=($('pollQ').value||'').trim();if(!q){toast('請輸入題目');return;}
-  var type=document.querySelector('input[name="ptype"]:checked').value;var opts;
-  if(type==='tf')opts=['是','否'];
+  var type=document.querySelector('input[name="ptype"]:checked').value;var style=document.querySelector('input[name="pollLabelStyle"]:checked');var optionStyle=(type==='single'||type==='multi')?(style?style.value:'alpha'):'';var opts;
+  if(type==='tf')opts=['O','X'];
   else if(type==='text')opts=[];
   else{opts=($('pollOpts').value||'').split('\n').map(function(s){return s.trim();}).filter(Boolean).slice(0,8);if(opts.length<2){toast('請至少輸入 2 個選項');return;}}
-  activePoll={id:uid(),q:q,type:type,options:opts,open:true,votes:{},counts:opts.map(function(){return 0;}),total:0,answers:[],ansMap:{}};
+  activePoll={id:uid(),q:q,type:type,options:opts,optionStyle:optionStyle,open:true,votes:{},counts:opts.map(function(){return 0;}),total:0,answers:[],ansMap:{}};
   $('pollSetup').classList.remove('show');myChoices=[];myAnswer='';showPoll(activePoll);hostBroadcast({t:'pollstart',poll:pollPublic(activePoll)});}
-function pollPublic(p){var o={id:p.id,q:p.q,type:p.type,options:p.options,open:p.open};if(p.type==='text')o.answers=p.answers||[];else{o.counts=p.counts;o.total=p.total;}return o;}
+function pollPublic(p){var o={id:p.id,q:p.q,type:p.type,options:p.options,optionStyle:p.optionStyle||'',open:p.open};if(p.type==='text')o.answers=p.answers||[];else{o.counts=p.counts;o.total=p.total;}return o;}
 function tallyPoll(p){var c=p.options.map(function(){return 0;});var v=0;for(var uid in p.votes){v++;p.votes[uid].forEach(function(i){if(i>=0&&i<c.length)c[i]++;});}p.counts=c;p.total=v;}
 function setAnswer(p,uid,name,text){p.ansMap=p.ansMap||{};p.ansMap[uid]={name:name,text:text};p.answers=Object.keys(p.ansMap).map(function(u){return p.ansMap[u];});}
+function pollOptionMark(p,i){if(p.type==='tf')return i===0?'O':'X';if(p.optionStyle==='alpha')return String.fromCharCode(65+i);if(p.optionStyle==='number')return ''+(i+1);return '';}
 function showPoll(p){$('pollQText').textContent=p.q;
-  var tag=p.type==='single'?'單選':p.type==='multi'?'複選（可多選後送出）':p.type==='tf'?'是非':'問答（簡答）';
+  var tag=p.type==='single'?'選擇題':p.type==='multi'?'複選題（可多選後送出）':p.type==='tf'?'是非題（O／X）':'簡答題';
   $('pollTypeTag').textContent=tag+(p.open?'':' · 已結束');
   var body=$('pollBody');body.innerHTML='';var foot=$('pollFoot');foot.innerHTML='';
   if(p.type==='text'){
@@ -81,7 +82,7 @@ function showPoll(p){$('pollQText').textContent=p.q;
   } else {
     p.options.forEach(function(opt,i){var row=document.createElement('button');row.className='poll-opt'+(myChoices.indexOf(i)>=0?' sel':'');row.setAttribute('data-i',i);
       var pct=p.total>0?Math.round((p.counts[i]/p.total)*100):0;
-      row.innerHTML='<div class="poll-fill" style="width:'+pct+'%"></div><span class="poll-label">'+esc(opt)+'</span><span class="poll-count">'+p.counts[i]+'（'+pct+'%）</span>';
+      var mark=pollOptionMark(p,i),label=(p.type==='tf'?'':esc(opt));row.innerHTML='<div class="poll-fill" style="width:'+pct+'%"></div>'+(mark?'<span class="poll-mark">'+mark+'</span>':'')+(label?'<span class="poll-label">'+label+'</span>':'')+'<span class="poll-count">'+p.counts[i]+'（'+pct+'%）</span>';
       row.onclick=function(){selectOpt(i);};body.appendChild(row);});
     if(p.type==='multi'&&p.open){var sb2=document.createElement('button');sb2.className='btn btn-gold';sb2.textContent='送出我的答案';sb2.onclick=submitVote;foot.appendChild(sb2);}
     foot.appendChild(Object.assign(document.createElement('div'),{className:'poll-total',textContent:'已作答 '+p.total+' 人'}));

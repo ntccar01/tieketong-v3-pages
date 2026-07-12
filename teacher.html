@@ -91,6 +91,7 @@
       <details class="tool-menu host-menu" id="activityToolMenu">
         <summary class="rb-exp">活動</summary>
         <div class="tool-popover">
+          <button class="rb-exp" id="quickPollBtn" onclick="openPollSetup()" title="是非、選擇、複選與簡答的即時作答（房主）" style="display:none">🗳️ 快問快答</button>
           <button class="rb-exp" id="buzzBtn" onclick="openBuzz()" title="搶答鈴（房主）" style="display:none">🔔 搶答</button>
           <button class="rb-exp" id="exitBtn" onclick="openExit()" title="退場券：下課前收集回饋（房主）" style="display:none">🎟️ 退場券</button>
           <button class="rb-exp" id="rollBtn" onclick="openRoll()" title="抽座號／隨機點名：滾動定格，全班同步（房主）" style="display:none">🎰 抽座號</button>
@@ -440,16 +441,17 @@
 <!-- poll setup (host) -->
 <div class="cmodal" id="pollSetup" onclick="if(event.target===this)this.classList.remove('show')">
   <div class="cm-card">
-    <div class="cm-h">🗳️ 即時投票／問答<button class="cm-x" onclick="$('pollSetup').classList.remove('show')">✕</button></div>
+    <div class="cm-h">🗳️ 快問快答<button class="cm-x" onclick="$('pollSetup').classList.remove('show')">✕</button></div>
     <input id="pollQ" class="pm-subj" placeholder="輸入題目…" maxlength="140" autocomplete="off">
     <div class="poll-types">
-      <label><input type="radio" name="ptype" value="single" checked onchange="pollTypeChange()"> 單選</label>
-      <label><input type="radio" name="ptype" value="multi" onchange="pollTypeChange()"> 複選</label>
-      <label><input type="radio" name="ptype" value="tf" onchange="pollTypeChange()"> 是非</label>
-      <label><input type="radio" name="ptype" value="text" onchange="pollTypeChange()"> 問答（簡答）</label>
+      <label><input type="radio" name="ptype" value="single" checked onchange="pollTypeChange()"> 選擇題</label>
+      <label><input type="radio" name="ptype" value="multi" onchange="pollTypeChange()"> 複選題</label>
+      <label><input type="radio" name="ptype" value="tf" onchange="pollTypeChange()"> 是非題（O／X）</label>
+      <label><input type="radio" name="ptype" value="text" onchange="pollTypeChange()"> 簡答題</label>
     </div>
-    <textarea id="pollOpts" class="kb-cols" rows="4" placeholder="每行一個選項（最多 8 個）"></textarea>
-    <button class="btn btn-gold" onclick="startPoll()">開始投票</button>
+    <div id="pollLabelStyleWrap" class="poll-label-style"><span>選項標示</span><label><input type="radio" name="pollLabelStyle" value="alpha" checked> A、B、C…</label><label><input type="radio" name="pollLabelStyle" value="number"> 1、2、3…</label><label><input type="radio" name="pollLabelStyle" value="none"> 不顯示</label></div>
+    <textarea id="pollOpts" class="kb-cols" rows="4" placeholder="每行一個選項內容（最多 8 個）"></textarea>
+    <button class="btn btn-gold" onclick="startPoll()">開始作答</button>
   </div>
 </div>
 <!-- live word cloud (everyone) -->

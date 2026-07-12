@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{--gold:#a9761a;--gold2:#7c5512;--bg0:#e7dcc2;--bg1:#f3ecdb;--bg2:#fbf6ea;--card:#fdfbf5;--line:rgba(150,120,60,.34);--tx:#3a3322;--mut:#8a7d5e;--navy:#1c3a5e;}
 html,body{height:100%;}
@@ -256,7 +256,7 @@ body.theme-dark .hist-card{box-shadow:0 8px 22px rgba(0,0,0,.45);}
 .pm-tool.rec-on .i,.pm-tool.rec-on span{color:#fff!important;}
 /* poll */
 .poll-types{display:flex;gap:16px;margin:12px 0;font-size:14px;color:var(--tx);}
-.poll-types label{display:flex;align-items:center;gap:6px;cursor:pointer;}
+.poll-types label{display:flex;align-items:center;gap:6px;cursor:pointer;}.poll-label-style{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:-2px 0 10px;font-size:13px;color:var(--mut);}.poll-label-style span{font-weight:800;color:var(--tx);}.poll-label-style label{display:flex;align-items:center;gap:5px;cursor:pointer;}
 .poll-modal{position:fixed;inset:0;z-index:115;background:rgba(45,33,12,.42);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;padding:18px;}
 .poll-modal.show{display:flex;}
 .poll-card{width:min(560px,94vw);max-height:86vh;overflow:auto;background:var(--card,#f1e9d6);border:1px solid var(--gold2);border-radius:18px;padding:24px;box-shadow:0 24px 70px rgba(0,0,0,.6);}
@@ -265,7 +265,7 @@ body.theme-dark .hist-card{box-shadow:0 8px 22px rgba(0,0,0,.45);}
 .poll-opt{position:relative;display:flex;align-items:center;width:100%;text-align:left;background:rgba(120,95,40,.05);border:1.5px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:10px;overflow:hidden;color:var(--tx);}
 .poll-opt.sel{border-color:var(--gold);box-shadow:0 0 0 2px rgba(232,196,122,.25);}
 .poll-fill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,rgba(232,196,122,.32),rgba(232,196,122,.16));transition:width .4s ease;z-index:0;}
-.poll-label{position:relative;z-index:1;flex:1;font-size:15px;font-weight:600;}
+.poll-mark{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;flex:0 0 30px;width:30px;height:30px;margin-right:10px;border-radius:50%;background:rgba(232,196,122,.24);color:var(--gold);font-weight:900;font-size:16px;}.poll-label{position:relative;z-index:1;flex:1;font-size:15px;font-weight:600;}
 .poll-count{position:relative;z-index:1;font-size:13px;font-weight:800;color:var(--gold);margin-left:8px;}
 .poll-foot{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:6px;}
 .poll-total{font-size:13px;color:var(--mut);}
